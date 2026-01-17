@@ -19,11 +19,16 @@ def chat_with_assistant(user_input, history): #function that takes the user's ms
     context = "You are JARVIS, an intelligent and helpful AI assistant. Be conversational and friendly.\n\n" #giving it a personality
 
     if history:
-        for human, assistant in history[-3:]: #keep last 3 exchanges
-            context += f"Human: {human}\n JARVIS: {assistant}\n"
+        for msg in history[-6:]: #adds each past conversation to the context
+            role = msg["role"]
+            content = msg["content"]
+            if role == "user":
+                context += f"Human: {content}\n"
+            elif role == "assistant":
+                context += f"JARVIS: {content}\n" 
 
 
-    context+= f"Human: {user_input}\nJARVIS:"
+    context+= f"Human: {user_input}\nJARVIS:" #adds current input to the context
 
     inputs = tokenizer(context, return_tensors="pt", truncation=True, max_length=1024)
     outputs = model.generate(
@@ -60,10 +65,7 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
     
     with gr.Row():
         with gr.Column(scale=2):
-            chatbot = gr.Chatbot(
-                height=250,
-                bubble_full_width=False
-            )
+            chatbot = gr.Chatbot(height=250)
 
             with gr.Row():
                 msg = gr.Textbox(
@@ -93,7 +95,8 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
                 return "", chat_history, None
             
             bot_response, audio_file = gradio_chat_with_voice(message, chat_history)
-            chat_history.append((message, bot_response))
+            chat_history.append({"role": "user", "content": message})
+            chat_history.append({"role": "assistant", "content": bot_response})
             return "", chat_history, audio_file
         
     #Wire up events
